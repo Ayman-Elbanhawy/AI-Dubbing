@@ -11,7 +11,7 @@ import dlib
 import cv2
 
 # Paths and folder setup
-BASE_DIR = "c:/SourceCode/dubbing"
+BASE_DIR = "c:/dubbing"
 VIDEO_DIR = os.path.join(BASE_DIR, "videos")
 WAV2LIP_DIR = os.path.join(BASE_DIR, "Wav2Lip")
 OUTPUT_VIDEO = os.path.join(VIDEO_DIR, "output_video.mp4")
