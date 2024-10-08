@@ -53,10 +53,6 @@ You can install the required Python libraries by running:
 
 **requirements.txt contains:**
 
-text
-
-Copy code
-
 torch
 
 transformers
@@ -80,10 +76,6 @@ ffmpeg-python
 **Installation**
 
 **1. Clone the Repository**
-
-bash
-
-Copy code
 
 git clone https://github.com/your-username/video-dubbing-lip-sync.git
 
@@ -109,11 +101,7 @@ allowed).
 
 Run the script using the following command:
 
-bash
-
-Copy code
-
-python test.py
+***python test.py c:/ dubbing/videos/inputVideo.mp4***
 
 The script will prompt you to choose:
 
@@ -172,3 +160,45 @@ for details.
 
 -   **Translation API errors**: Ensure you have a stable internet
     connection when using the Google Translate API.
+
+LINKS:
+
+<https://github.com/Rudrabha/Wav2Lip>
+
+[Deepfake Audio with Wav2Lip. Step-by-step walkthrough on lip-syncing...
+\| by Chiawei Lim \| Becoming Human: Artificial Intelligence
+Magazine](https://becominghuman.ai/deepfake-audio-with-wav2lip-263f0f0e84bc)
+
+<https://iiitaphyd-my.sharepoint.com/:u:/g/personal/radrabha_m_research_iiit_ac_in/EdjI7bZlgApMqsVoEUUXpLsBxqXbn5z8VTmoxp55YNDcIA?e=n9ljGW>
+
+<https://iiitaphyd-my.sharepoint.com/:u:/g/personal/radrabha_m_research_iiit_ac_in/Eb3LEzbfuKlJiR600lQWRxgBIY27JZg80f7V9jtMfbNDaQ?e=TBFBVW>
+
+To Convert from DOCX to MD:
+
+Install PanDoc:
+
+[Pandoc - Installing pandoc](https://pandoc.org/installing.html)
+
+pandoc README.docx -o README.md
+
+If you have the Dubbed Audio and the original MP4 Video, and want to
+just combine them, use:
+
+python inference.py \--checkpoint_path checkpoints\\wav2lip.pth \--face
+inputVideo.mp4 \--audio InputVideoAudioDub.wav \--resize_factor 2
+\--outfile outputVideo.mp4
+
+To Use this program in CMD:
+
+clear ; python test.py c:/ dubbing/videos/inputVideo.mp4
+
+Make sure you installed all of the following using ( ***pip install -r
+requirements.txt***) :
+
+Ffmpeg, TTS, googletrans\>=4.0.0-rc1, whisper, mtcnn,, dlib, pipx,
+numba\>=0.55.0,
+
+librosa\>=0.8.0, ffmpeg-python, torch, torchvision, torchaudio,
+opencv-python,
+
+openai-whisper, transformers, tqdm, facenet-pytorch
