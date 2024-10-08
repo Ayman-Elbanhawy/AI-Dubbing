@@ -77,9 +77,9 @@ ffmpeg-python
 
 **1. Clone the Repository**
 
-git clone https://github.com/your-username/video-dubbing-lip-sync.git
+git clone https://github.com/Ayman-Elbanhawy/AI-Dubbing.git
 
-cd video-dubbing-lip-sync
+cd AI-Dubbing
 
 **2. Install FFmpeg**
 
