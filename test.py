@@ -11,7 +11,7 @@ import dlib
 import cv2
 
 # Paths and folder setup
-BASE_DIR = "c:/dubbing"
+BASE_DIR = "c:/SourceCode/dubbing"
 VIDEO_DIR = os.path.join(BASE_DIR, "videos")
 WAV2LIP_DIR = os.path.join(BASE_DIR, "Wav2Lip")
 OUTPUT_VIDEO = os.path.join(VIDEO_DIR, "output_video.mp4")
@@ -25,7 +25,7 @@ def extract_audio(video_path, audio_path):
 def run_wav2lip(input_video, input_audio, output_video):
     command_wav2lip = [
         "python", os.path.join(WAV2LIP_DIR, "inference.py"),
-        "--checkpoint_path", os.path.join(WAV2LIP_DIR, "checkpoints/wav2lip.pth"),
+        "--checkpoint_path", os.path.join(WAV2LIP_DIR, "checkpoints\wav2lip.pth"),
         "--face", input_video,
         "--audio", input_audio,
         "--resize_factor", "2",
