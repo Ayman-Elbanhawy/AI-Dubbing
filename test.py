@@ -9,31 +9,90 @@ import wave
 from mtcnn import MTCNN
 import dlib
 import cv2
+import librosa
+import subprocess
 
 # Paths and folder setup
-BASE_DIR = "c:/SourceCode/dubbing"
+BASE_DIR = "C:/SourceCode/dubbing"
 VIDEO_DIR = os.path.join(BASE_DIR, "videos")
 WAV2LIP_DIR = os.path.join(BASE_DIR, "Wav2Lip")
 OUTPUT_VIDEO = os.path.join(VIDEO_DIR, "output_video.mp4")
 
-# Function to extract audio from video using system-level FFmpeg
-def extract_audio(video_path, audio_path):
-    command = ["ffmpeg", "-i", video_path, "-ab", "160k", "-ac", "2", "-ar", "44100", "-vn", audio_path]
+# Function to extract audio from video using FFmpeg
+def extract_audio(video_path, audio_path, sample_rate=44100):
+    command = [
+        "ffmpeg", "-i", video_path, "-ab", "160k", "-ac", "2", 
+        "-ar", str(sample_rate), "-vn", audio_path, "-y"
+    ]
     subprocess.run(command)
 
-# Function to run Wav2Lip for lip-syncing
+# Function to split text based on the character limit:
+def split_text_by_limit(text, limit=273):
+    words = text.split()
+    chunks = []
+    current_chunk = []
+
+    for word in words:
+        if len(' '.join(current_chunk + [word])) <= limit:
+            current_chunk.append(word)
+        else:
+            chunks.append(' '.join(current_chunk))
+            current_chunk = [word]
+
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+
+    return chunks
+
+# Concatenating audio: You can merge the smaller audio chunks after TTS synthesis to create the final dubbed audio.
+def concatenate_audio(audio_chunks):
+    from pydub import AudioSegment
+    final_audio = AudioSegment.empty()
+    for chunk in audio_chunks:
+        final_audio += chunk
+    return final_audio
+
+# Example usage for Google Translate API
+def translate_text(text, src_lang, target_lang):
+    translated_chunks = []
+    chunks = split_text_by_limit(text, limit=273)
+    translator = Translator()
+
+    for chunk in chunks:
+        translated_chunk = translator.translate(chunk, src=src_lang, dest=target_lang).text
+        translated_chunks.append(translated_chunk)
+
+    return ' '.join(translated_chunks)
+
+# Example usage for TTS synthesis
+def synthesize_speech(translated_text, tts_model):
+    tts_chunks = []
+    chunks = split_text_by_limit(translated_text, limit=273)
+    
+    for chunk in chunks:
+        tts_audio_chunk = tts_model.synthesize(chunk)
+        tts_chunks.append(tts_audio_chunk)
+
+    return concatenate_audio(tts_chunks)
+
+# Function to run Wav2Lip for lip-syncing using inference-a.py
 def run_wav2lip(input_video, input_audio, output_video):
     command_wav2lip = [
-        "python", os.path.join(WAV2LIP_DIR, "inference.py"),
-        "--checkpoint_path", os.path.join(WAV2LIP_DIR, "checkpoints\wav2lip.pth"),
+        "python", os.path.join(WAV2LIP_DIR, "inference-a.py"),
+        "--checkpoint_path", os.path.join(WAV2LIP_DIR, "checkpoints/wav2lip_gan.pth"),
         "--face", input_video,
         "--audio", input_audio,
+        "--outfile", output_video,
         "--resize_factor", "2",
-        "--outfile", output_video
+        "--wav2lip_batch_size", "32",
+        "--face_det_batch_size", "8",
+        "--pads", "0", "10", "0", "0",
+        "--crop", "0", "-1", "0", "-1"
     ]
+    print(f"Running Wav2Lip with command: {command_wav2lip}")
     subprocess.run(command_wav2lip)
 
-# Function to load audio using system FFmpeg for Whisper transcription
+# Function to load audio using FFmpeg for Whisper transcription
 def load_audio_with_ffmpeg(file, sr=16000):
     temp_wav_path = os.path.join(VIDEO_DIR, "temp_audio.wav")
     command = f"ffmpeg -i {file} -ar {sr} -ac 1 -f wav {temp_wav_path} -y"
@@ -53,15 +112,13 @@ def choose_language():
         '4': ('fr', 'French'),
         '5': ('de', 'German'),
         '6': ('it', 'Italian'),
-        # Add more languages if needed
     }
 
     print("Select a language:")
     for key, value in languages.items():
         print(f"{key}. {value[1]}")
-    
-    choice = input("Choose a language by number: ")
 
+    choice = input("Choose a language by number: ")
     if choice in languages:
         return languages[choice]
     else:
@@ -77,33 +134,14 @@ def choose_face_detection_method():
     choice = input("Enter the number corresponding to the face detection method: ")
     return choice
 
-def detect_face_mtcnn(frame):
-    detector = MTCNN()
-    faces = detector.detect_faces(frame)
-    if faces:
-        return faces[0]  # Return the first detected face
-    return None
-
-def detect_face_dlib(frame):
-    detector = dlib.get_frontal_face_detector()
-    faces = detector(frame, 1)
-    if faces:
-        return faces[0]  # Return the first detected face
-    return None
-
-def detect_face_wav2lip(frame):
-    pass  # Placeholder for Wav2Lip face detection logic
-
-def run_face_detection_method(method_choice, frame):
-    if method_choice == "1":
-        return detect_face_mtcnn(frame)
-    elif method_choice == "2":
-        return detect_face_dlib(frame)
-    elif method_choice == "3":
-        return detect_face_wav2lip(frame)
-    else:
-        print("Invalid choice. Using basic Wav2Lip detection.")
-        return detect_face_wav2lip(frame)
+# Function to adjust TTS audio speed to match the video duration
+def adjust_tts_speed(audio, target_duration):
+    current_duration = librosa.get_duration(filename=audio)
+    speed_ratio = current_duration / target_duration
+    print(f"Adjusting TTS speed with ratio: {speed_ratio}")
+    adjusted_audio = 'adjusted_dub.wav'
+    subprocess.run(['ffmpeg', '-i', audio, '-filter:a', f"atempo={speed_ratio}", '-vn', adjusted_audio])
+    return adjusted_audio
 
 # Main dubbing and lip-sync process
 def dub_video(input_video, from_lang_code, to_lang_code, face_detection_method):
@@ -124,7 +162,7 @@ def dub_video(input_video, from_lang_code, to_lang_code, face_detection_method):
     # Step 3: Translate the text using Google Translate
     print(f"Translating from {from_lang_code} to {to_lang_code}...")
     translator = Translator()
-    translated_text = translator.translate(original_text, src=from_lang_code[:2], dest=to_lang_code[:2]).text
+    translated_text = translate_text(original_text, from_lang_code[:2], to_lang_code[:2])
     print(f"Translated text: {translated_text}")
 
     # Step 4: Synthesize translated text to speech using TTS
@@ -132,9 +170,13 @@ def dub_video(input_video, from_lang_code, to_lang_code, face_detection_method):
     tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
     tts.tts_to_file(text=translated_text, language=to_lang_code[:2], speaker_wav=audio_path, file_path=translated_wav)
 
-    # Step 5: Run Wav2Lip for Lip Sync
+    # Step 5: Adjust TTS audio to match the video duration
+    original_audio_duration = librosa.get_duration(filename=audio_path)
+    adjusted_dub_audio = adjust_tts_speed(translated_wav, original_audio_duration)
+
+    # Step 6: Run Wav2Lip for Lip Sync using inference-a.py
     print("Running Wav2Lip for lip-syncing...")
-    run_wav2lip(input_video, translated_wav, OUTPUT_VIDEO)
+    run_wav2lip(input_video, adjusted_dub_audio, OUTPUT_VIDEO)
 
     print(f"Process completed. Output video saved at {OUTPUT_VIDEO}")
 
