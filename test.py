@@ -13,7 +13,7 @@ import librosa
 import subprocess
 
 # Paths and folder setup
-BASE_DIR = "C:/SourceCode/dubbing"
+BASE_DIR = "C:\SourceCode\dubbing"
 VIDEO_DIR = os.path.join(BASE_DIR, "videos")
 WAV2LIP_DIR = os.path.join(BASE_DIR, "Wav2Lip")
 OUTPUT_VIDEO = os.path.join(VIDEO_DIR, "output_video.mp4")
@@ -27,7 +27,7 @@ def extract_audio(video_path, audio_path, sample_rate=44100):
     subprocess.run(command)
 
 # Function to split text based on the character limit:
-def split_text_by_limit(text, limit=273):
+def split_text_by_limit(text, limit=100):
     words = text.split()
     chunks = []
     current_chunk = []
@@ -55,7 +55,7 @@ def concatenate_audio(audio_chunks):
 # Example usage for Google Translate API
 def translate_text(text, src_lang, target_lang):
     translated_chunks = []
-    chunks = split_text_by_limit(text, limit=273)
+    chunks = split_text_by_limit(text, limit=100)
     translator = Translator()
 
     for chunk in chunks:
@@ -67,7 +67,7 @@ def translate_text(text, src_lang, target_lang):
 # Example usage for TTS synthesis
 def synthesize_speech(translated_text, tts_model):
     tts_chunks = []
-    chunks = split_text_by_limit(translated_text, limit=273)
+    chunks = split_text_by_limit(translated_text, limit=100)
     
     for chunk in chunks:
         tts_audio_chunk = tts_model.synthesize(chunk)
@@ -77,20 +77,30 @@ def synthesize_speech(translated_text, tts_model):
 
 # Function to run Wav2Lip for lip-syncing using inference-a.py
 def run_wav2lip(input_video, input_audio, output_video):
+    pad_top = 0
+    pad_bottom = 10
+    pad_left = 0
+    pad_right = 0
+    rescale_factor = 2
+    nosmooth = True
+    use_hd_model = False
+    checkpoint_path = 'checkpoints\wav2lip.pth' if not use_hd_model else 'checkpoints\wav2lip_gan.pth'
+
     command_wav2lip = [
         "python", os.path.join(WAV2LIP_DIR, "inference-a.py"),
-        "--checkpoint_path", os.path.join(WAV2LIP_DIR, "checkpoints/wav2lip_gan.pth"),
+        "--checkpoint_path", os.path.join(WAV2LIP_DIR, checkpoint_path),
         "--face", input_video,
         "--audio", input_audio,
         "--outfile", output_video,
-        "--resize_factor", "2",
+        "--resize_factor", str(rescale_factor),
         "--wav2lip_batch_size", "32",
         "--face_det_batch_size", "8",
-        "--pads", "0", "10", "0", "0",
+        "--pads", str(pad_top), str(pad_bottom), str(pad_left), str(pad_right),
         "--crop", "0", "-1", "0", "-1"
     ]
     print(f"Running Wav2Lip with command: {command_wav2lip}")
     subprocess.run(command_wav2lip)
+
 
 # Function to load audio using FFmpeg for Whisper transcription
 def load_audio_with_ffmpeg(file, sr=16000):
@@ -104,14 +114,30 @@ def load_audio_with_ffmpeg(file, sr=16000):
     return audio
 
 # Language selection for source and target languages
+# Language selection for source and target languages
 def choose_language():
     languages = {
-        '1': ('en', 'English'),
-        '2': ('es', 'Spanish'),
-        '3': ('ar', 'Arabic'),
-        '4': ('fr', 'French'),
-        '5': ('de', 'German'),
-        '6': ('it', 'Italian'),
+        '1': ('af', 'Afrikaans'), '2': ('am', 'Amharic'), '3': ('ar', 'Arabic'), '4': ('as', 'Assamese'), 
+        '5': ('az', 'Azerbaijani'), '6': ('ba', 'Bashkir'), '7': ('be', 'Belarusian'), '8': ('bg', 'Bulgarian'), 
+        '9': ('bn', 'Bengali'), '10': ('bo', 'Tibetan'), '11': ('br', 'Breton'), '12': ('bs', 'Bosnian'), 
+        '13': ('ca', 'Catalan'), '14': ('cs', 'Czech'), '15': ('cy', 'Welsh'), '16': ('da', 'Danish'), 
+        '17': ('de', 'German'), '18': ('el', 'Greek'), '19': ('en', 'English'), '20': ('es', 'Spanish'), 
+        '21': ('et', 'Estonian'), '22': ('eu', 'Basque'), '23': ('fa', 'Persian'), '24': ('fi', 'Finnish'), 
+        '25': ('fr', 'French'), '26': ('gl', 'Galician'), '27': ('gu', 'Gujarati'), '28': ('ha', 'Hausa'), 
+        '29': ('he', 'Hebrew'), '30': ('hi', 'Hindi'), '31': ('hr', 'Croatian'), '32': ('hu', 'Hungarian'), 
+        '33': ('hy', 'Armenian'), '34': ('id', 'Indonesian'), '35': ('is', 'Icelandic'), '36': ('it', 'Italian'), 
+        '37': ('ja', 'Japanese'), '38': ('jv', 'Javanese'), '39': ('ka', 'Georgian'), '40': ('kk', 'Kazakh'), 
+        '41': ('km', 'Khmer'), '42': ('kn', 'Kannada'), '43': ('ko', 'Korean'), '44': ('la', 'Latin'), 
+        '45': ('lb', 'Luxembourgish'), '46': ('lt', 'Lithuanian'), '47': ('lv', 'Latvian'), '48': ('mk', 'Macedonian'), 
+        '49': ('ml', 'Malayalam'), '50': ('mn', 'Mongolian'), '51': ('mr', 'Marathi'), '52': ('ms', 'Malay'), 
+        '53': ('mt', 'Maltese'), '54': ('my', 'Burmese'), '55': ('ne', 'Nepali'), '56': ('nl', 'Dutch'), 
+        '57': ('no', 'Norwegian'), '58': ('oc', 'Occitan'), '59': ('pa', 'Punjabi'), '60': ('pl', 'Polish'), 
+        '61': ('pt', 'Portuguese'), '62': ('ro', 'Romanian'), '63': ('ru', 'Russian'), '64': ('sa', 'Sanskrit'), 
+        '65': ('sd', 'Sindhi'), '66': ('si', 'Sinhala'), '67': ('sk', 'Slovak'), '68': ('sl', 'Slovenian'), 
+        '69': ('so', 'Somali'), '70': ('sq', 'Albanian'), '71': ('sr', 'Serbian'), '72': ('sv', 'Swedish'), 
+        '73': ('ta', 'Tamil'), '74': ('te', 'Telugu'), '75': ('th', 'Thai'), '76': ('tr', 'Turkish'), 
+        '77': ('uk', 'Ukrainian'), '78': ('ur', 'Urdu'), '79': ('uz', 'Uzbek'), '80': ('vi', 'Vietnamese'), 
+        '81': ('zh', 'Chinese'), '82': ('yi', 'Yiddish'), '83': ('yo', 'Yoruba')
     }
 
     print("Select a language:")
@@ -182,11 +208,20 @@ def dub_video(input_video, from_lang_code, to_lang_code, face_detection_method):
 
 # Entry point for the script
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python test.py <input_video_path>")
-        sys.exit(1)
+#    if len(sys.argv) < 2:
+#        print("Usage: python test.py <input_video_path>")
+#        sys.exit(1)
+#
+#    input_video_path = sys.argv[1]
 
-    input_video_path = sys.argv[1]
+    print("AI Video Dubbing Version 1.0")
+    print("==================================")
+    
+    # Video upload
+    input_video_path = input("Enter the path to the video file (e.g., 'videos\input_vid.mp4'): ").strip()
+    if not os.path.exists(input_video_path):
+        print("Error: Video file not found.")
+        exit(1)  # Exit the script if the file is not found
 
     # Prompt user to select the from and to languages
     print("Choose the source language (from):")
