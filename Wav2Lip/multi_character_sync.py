@@ -10,10 +10,16 @@ import dlib
 from moviepy.editor import VideoFileClip
 
 # Paths and folder setup
-BASE_DIR = "C:\SourceCode\dubbing"
+BASE_DIR = "C:/SourceCode/dubbing"
 VIDEO_DIR = os.path.join(BASE_DIR, "videos")
 WAV2LIP_DIR = os.path.join(BASE_DIR, "Wav2Lip")
 OUTPUT_VIDEO = os.path.join(VIDEO_DIR, "output_video.mp4")
+CHECKPOINT_PATH = "checkpoints/wav2lip.pth"  # Ensure this path exists
+RESCALE_FACTOR = 2
+PAD_TOP = 0
+PAD_BOTTOM = 10
+PAD_LEFT = 0
+PAD_RIGHT = 0
 
 
 class MultiCharacterSync:
@@ -85,28 +91,18 @@ class MultiCharacterSync:
             print(f"Error during TTS synthesis: {e}")
 
     def apply_lip_sync(self, frame, faces, audio_file):
-        """
-        pad_top = 0
-        pad_bottom = 10
-        pad_left = 0
-        pad_right = 0
-        rescale_factor = 2
-        nosmooth = True
-        use_hd_model = False
-        checkpoint_path = 'checkpoints\wav2lip.pth' if not use_hd_model else 'checkpoints\wav2lip_gan.pth'
-
-        Apply Wav2Lip lip-syncing logic to detected faces in the video frame.
-        :param frame: A single video frame.
-        :param faces: List of detected face bounding boxes.
-        :param audio_file: Corresponding synthesized audio file.
-        """
+        """Apply Wav2Lip lip-syncing logic to detected faces in the video frame."""
         frame_path = "current_frame.jpg"
         audio_path = audio_file
+        output_path = "output_frame_lip_sync.mp4"
         output_path = "output_frame_lip_sync.mp4"
 
         from PIL import Image
         image = Image.fromarray(frame)
         image.save(frame_path)
+
+        # Fix: Make sure checkpoint_path is defined and passed correctly
+        checkpoint_path = CHECKPOINT_PATH
 
         command_wav2lip = [
             "python", os.path.join(WAV2LIP_DIR, "inference-multi-character.py"),
@@ -114,10 +110,10 @@ class MultiCharacterSync:
             "--face", frame_path,
             "--audio", audio_path,
             "--outfile", output_path,
-            "--resize_factor", str(rescale_factor),
+            "--resize_factor", str(RESCALE_FACTOR),
             "--wav2lip_batch_size", "32",
             "--face_det_batch_size", "8",
-            "--pads", str(pad_top), str(pad_bottom), str(pad_left), str(pad_right),
+            "--pads", str(PAD_TOP), str(PAD_BOTTOM), str(PAD_LEFT), str(PAD_RIGHT),
             "--crop", "0", "-1", "0", "-1"
         ]
 
